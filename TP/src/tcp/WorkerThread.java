@@ -21,35 +21,64 @@ public class WorkerThread extends Thread {
         this.ip = socket.getInetAddress();
     }
 
-    private boolean userNameAlreadyExists(JSONArray users, String userName) throws IOException, ParseException {
+    private boolean userNameExists(JSONArray users, String userName) {
         JSONObject userJson;
         for (Object o : users) {
             userJson = (JSONObject) o;
             if (userJson.get("userName").equals(userName)) {
-                out.println("A user with that name already exists.");
                 return true;
             }
         }
-        out.println("Success");
         return false;
+    }
+
+    private boolean passwordIsCorrect(JSONArray users, String userName, String password) {
+        JSONObject userJson;
+        for (Object o : users) {
+            userJson = (JSONObject) o;
+            if (userJson.get("userName").equals(userName) && userJson.get("password").equals(password)) {
+                return true;
+            }
+        }
+        return false;
+
     }
 
     private void signUp() throws IOException, ParseException {
         JSONObject user;
         JSONParser jsonParser = new JSONParser();
         JSONArray users = (JSONArray) jsonParser.parse(new FileReader("../files/users.json"));
-        do {
+        while (true) {
             user = (JSONObject) jsonParser.parse(in.readLine());
-        } while (userNameAlreadyExists(users, (String) user.get("userName")));
-
+            if (userNameExists(users, (String) user.get("userName"))) {
+                out.println("A user with that name already exists.");
+            } else {
+                out.println("Success");
+                break;
+            }
+        }
         users.add(user);
         FileWriter file = new FileWriter("../files/users.json");
         file.write(users.toJSONString());
         file.close();
     }
 
-    private void signIn() {
-
+    private void signIn() throws IOException, ParseException {
+        JSONObject user;
+        JSONParser jsonParser = new JSONParser();
+        JSONArray users = (JSONArray) jsonParser.parse(new FileReader("../files/users.json"));
+        while (true) {
+            user = (JSONObject) jsonParser.parse(in.readLine());
+            if (!userNameExists(users, (String) user.get("userName"))) {
+                out.println("No such user exists.");
+            } else if (userNameExists(users, (String) user.get("userName")) &&
+                    !passwordIsCorrect(users, (String) user.get("userName"), (String) user.get("password"))) {
+                out.println("Wrong password.");
+            } else {
+                out.println("Success");
+                break;
+            }
+        }
     }
 
     public void run() {

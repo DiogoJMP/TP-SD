@@ -35,18 +35,17 @@ public class Passenger {
     }
 
     private static void welcomeScreen(PrintWriter out, BufferedReader in) throws IOException {
-        clr();
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            printMenu("WELCOME");
+            printMenu("WELCOME", "");
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
                 option = sc.nextInt();
             }
             if (option == 1) {
-                signIn();
+                signIn(out, in);
             } else if (option == 2) {
                 signUp(out, in);
             } else {
@@ -56,14 +55,35 @@ public class Passenger {
         }
     }
 
+    private static void signedInScreen(String userName) {
+        int option;
+        Scanner sc = new Scanner(System.in);
+        while (true) {
+            printMenu("SIGNEDIN", userName);
+            option = sc.nextInt();
+            while (option < 0 || option > 2) {
+                System.out.println("Invalid option");
+                option = sc.nextInt();
+            }
+            if (option == 1) {
+                System.out.println("shit done");
+            } else if (option == 2) {
+                System.out.println("some other shit done");
+            } else {
+                break;
+            }
+        }
+    }
+
     private static void signUp(PrintWriter out, BufferedReader in) throws IOException {
-        clr();
         out.println("Signup");
         JSONObject user = new JSONObject();
-//[{"password":"empty","userName":"empty"}]
         Scanner scanner = new Scanner(System.in);
-        String userName, password, output;
+        String userName, password;
+        String output = "";
         do {
+            clr();
+            System.out.println(output);
             System.out.print("Enter a username: ");
             userName = scanner.nextLine();
             System.out.print("Enter a password: ");
@@ -72,12 +92,31 @@ public class Passenger {
             user.put("password", password);
             out.println(user.toJSONString());
             output = in.readLine();
-            System.out.println(output);
         } while (!output.equals("Success"));
     }
 
-    private static void signIn() {
+    private static void signIn(PrintWriter out, BufferedReader in) throws IOException {
+        out.println("Signin");
+        JSONObject user = new JSONObject();
+        Scanner scanner = new Scanner(System.in);
+        String userName, password;
+        String output = "";
+        do {
+            clr();
+            System.out.println(output);
 
+            System.out.print("Enter your username: ");
+            userName = scanner.nextLine();
+            System.out.print("Enter your password: ");
+            password = scanner.nextLine();
+
+            user.put("userName", userName);
+            user.put("password", password);
+            out.println(user.toJSONString());
+
+            output = in.readLine();
+        } while (!output.equals("Success"));
+        signedInScreen(userName);
     }
 
     private static void clr() {
@@ -85,7 +124,8 @@ public class Passenger {
         System.out.flush();
     }
 
-    private static void printMenu(String option) {
+    private static void printMenu(String option, String userName) {
+        clr();
         switch (option) {
             case "WELCOME":
                 System.out.print("""
@@ -95,6 +135,14 @@ public class Passenger {
                         0- Exit
                         --------------------------------------->""");
                 break;
+            case "SIGNEDIN":
+                System.out.print("""
+                        ----------------<WELCOME,\040""" + userName + """
+                        >----------------
+                        1- Do shit
+                        2- Do some other shit
+                        0- Sign out
+                        --------------------------------------->""");
         }
     }
 }
