@@ -44,10 +44,41 @@ public class WorkerThread extends Thread {
 
     }
 
+    private void chooseLines(JSONArray lines, int input) {
+        if (lines.contains(input)) {
+            lines.remove((Integer) input);
+        } else {
+            lines.add(input);
+        }
+    }
+
+    private void printLines(JSONArray linesJSON, JSONArray lines) {
+        JSONObject tempJSON;
+        long tempId;
+        String[] linesArray = new String[24];
+        String finalOutput = "";
+        for (int i = 0; i < linesArray.length; i++) {
+            tempJSON = (JSONObject) linesJSON.get(i);
+            tempId = (long) tempJSON.get("id") + 1;
+            if (lines.contains((int) tempId - 1)) {
+                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " (Selected) ");
+            } else {
+                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " ");
+            }
+        }
+        for (int i = 0; i < linesArray.length / 3; i++) {
+            finalOutput += "|" + linesArray[i] + "| " + linesArray[i + 8] + "| " + linesArray[i + 16];
+            finalOutput += "\n";
+        }
+        out.println(finalOutput);
+        out.println("End");
+    }
+
     private void signUp() throws IOException, ParseException {
         JSONObject user;
         JSONParser jsonParser = new JSONParser();
         JSONArray users = (JSONArray) jsonParser.parse(new FileReader("../files/users.json"));
+        JSONArray lines = new JSONArray();
         while (true) {
             user = (JSONObject) jsonParser.parse(in.readLine());
             if (userNameExists(users, (String) user.get("userName"))) {
@@ -57,6 +88,23 @@ public class WorkerThread extends Thread {
                 break;
             }
         }
+        JSONArray linesJSON = (JSONArray) jsonParser.parse(new FileReader("../files/lines.json"));
+        int input;
+        while (true) {
+            printLines(linesJSON, lines);
+            input = Integer.parseInt(in.readLine());
+            if (input > 0 && input <= 24) {
+                chooseLines(lines, input - 1);
+            }
+            if (input == 0 && lines.size() != 0) {
+                out.println("Success");
+                break;
+            } else {
+                out.println("Must select at least one line");
+            }
+        }
+
+        user.put("lines", lines);
         users.add(user);
         FileWriter file = new FileWriter("../files/users.json");
         file.write(users.toJSONString());

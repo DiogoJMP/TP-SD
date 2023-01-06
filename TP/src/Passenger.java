@@ -1,3 +1,4 @@
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
@@ -7,6 +8,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Passenger {
 
@@ -78,6 +80,7 @@ public class Passenger {
     private static void signUp(PrintWriter out, BufferedReader in) throws IOException {
         out.println("Signup");
         JSONObject user = new JSONObject();
+        JSONArray lines = new JSONArray();
         Scanner scanner = new Scanner(System.in);
         String userName, password;
         String output = "";
@@ -91,6 +94,20 @@ public class Passenger {
             user.put("userName", userName);
             user.put("password", password);
             out.println(user.toJSONString());
+            output = in.readLine();
+        } while (!output.equals("Success"));
+        int option;
+        do {
+            clr();
+            while (!(output = in.readLine()).equals("End")) {
+                System.out.println(output);
+            }
+            System.out.println("|0- Exit");
+            System.out.print("Select your lines: ");
+            option = scanner.nextInt();
+            if (option <= 24) {
+                out.println(option);
+            }
             output = in.readLine();
         } while (!output.equals("Success"));
     }
