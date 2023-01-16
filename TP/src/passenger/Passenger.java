@@ -1,55 +1,48 @@
+package passenger;
+
+import central.CentralManager;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 public class Passenger {
 
+    private static PrintWriter out;
+    private static BufferedReader in;
+    private static String userName;
+
     public static void main(String[] args) {
-        try (Socket socket = new Socket("localhost", 2048)) {
+        try (Socket socket = new Socket("localhost", CentralManager.getTcpPort())) {
 
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out = new PrintWriter(socket.getOutputStream(), true);
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            welcomeScreen(out, in);
+            welcomeScreen();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
-
-        /**if (args.length != 2) {
-         System.out.println("Two arguments required: <multicast-host> <port-number>");
-         System.exit(-1);
-         }
-         InetAddress group = InetAddress.getByName(args[0]);
-         int port = Integer.parseInt(args[1]);
-         MulticastSocket socket = new MulticastSocket(port);
-         socket.setTimeToLive(0);
-         socket.joinGroup(group);*/
     }
 
-    private static void welcomeScreen(PrintWriter out, BufferedReader in) throws IOException {
+    private static void welcomeScreen() throws IOException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            printMenu("WELCOME", "");
+            printMenu("WELCOME");
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
                 option = sc.nextInt();
             }
             if (option == 1) {
-                signIn(out, in);
+                signIn();
+                signedInScreen();
             } else if (option == 2) {
-                signUp(out, in);
+                signUp();
             } else {
                 out.println("Bye");
                 break;
@@ -57,27 +50,29 @@ public class Passenger {
         }
     }
 
-    private static void signedInScreen(String userName) {
+    private static void signedInScreen() throws IOException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            printMenu("SIGNEDIN", userName);
+            printMenu("SIGNEDIN");
+
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
                 option = sc.nextInt();
             }
             if (option == 1) {
-                System.out.println("shit done");
+                checkNotifications();
             } else if (option == 2) {
-                System.out.println("some other shit done");
+                sendNotification();
             } else {
+                out.println("Signout");
                 break;
             }
         }
     }
 
-    private static void signUp(PrintWriter out, BufferedReader in) throws IOException {
+    private static void signUp() throws IOException {
         out.println("Signup");
         JSONObject user = new JSONObject();
         JSONArray lines = new JSONArray();
@@ -112,11 +107,11 @@ public class Passenger {
         } while (!output.equals("Success"));
     }
 
-    private static void signIn(PrintWriter out, BufferedReader in) throws IOException {
+    private static void signIn() throws IOException {
         out.println("Signin");
         JSONObject user = new JSONObject();
         Scanner scanner = new Scanner(System.in);
-        String userName, password;
+        String password;
         String output = "";
         do {
             clr();
@@ -133,7 +128,41 @@ public class Passenger {
 
             output = in.readLine();
         } while (!output.equals("Success"));
-        signedInScreen(userName);
+    }
+
+    private static void checkNotifications() {
+        out.println("GetNotifications");
+    }
+
+    private static void sendNotification() throws IOException {
+        out.println("SendNotification");
+        Scanner scanner = new Scanner(System.in);
+        String output = "";
+        String comment;
+        int option;
+        do {
+            clr();
+            while (!(output = in.readLine()).equals("End")) {
+                System.out.println(output);
+            }
+            System.out.println("|0- Confirm");
+            System.out.print("Select the lines that have been affected: ");
+            option = scanner.nextInt();
+            if (option <= 24) {
+                out.println(option);
+            }
+            output = in.readLine();
+        } while (!output.equals("Success"));
+
+        do {
+            clr();
+            System.out.println(output);
+            System.out.print("Write a comment: ");
+            comment = scanner.nextLine();
+            out.println(comment);
+            output = in.readLine();
+        } while (!output.equals("Success"));
+
     }
 
     private static void clr() {
@@ -141,23 +170,24 @@ public class Passenger {
         System.out.flush();
     }
 
-    private static void printMenu(String option, String userName) {
+
+    private static void printMenu(String option) {
         clr();
         switch (option) {
             case "WELCOME":
                 System.out.print("""
                         ----------------<WELCOME>----------------
-                        1- Sign In
-                        2- Sign Up
+                        1- Sign in
+                        2- Sign up
                         0- Exit
                         --------------------------------------->""");
                 break;
             case "SIGNEDIN":
                 System.out.print("""
                         ----------------<WELCOME,\040""" + userName + """
-                        >----------------
-                        1- Do shit
-                        2- Do some other shit
+                        >------------
+                        1- Check notifications
+                        2- Send notification
                         0- Sign out
                         --------------------------------------->""");
         }
