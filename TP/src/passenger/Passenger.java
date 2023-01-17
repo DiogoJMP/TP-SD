@@ -3,9 +3,12 @@ package passenger;
 import central.CentralManager;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class Passenger {
@@ -23,12 +26,12 @@ public class Passenger {
 
             welcomeScreen();
 
-        } catch (IOException e) {
+        } catch (IOException | ParseException e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private static void welcomeScreen() throws IOException {
+    private static void welcomeScreen() throws IOException, ParseException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
@@ -50,7 +53,7 @@ public class Passenger {
         }
     }
 
-    private static void signedInScreen() throws IOException {
+    private static void signedInScreen() throws IOException, ParseException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
@@ -75,7 +78,6 @@ public class Passenger {
     private static void signUp() throws IOException {
         out.println("Signup");
         JSONObject user = new JSONObject();
-        JSONArray lines = new JSONArray();
         Scanner scanner = new Scanner(System.in);
         String userName, password;
         String output = "";
@@ -130,8 +132,22 @@ public class Passenger {
         } while (!output.equals("Success"));
     }
 
-    private static void checkNotifications() {
+    private static void checkNotifications() throws IOException, ParseException {
         out.println("GetNotifications");
+        Scanner scanner = new Scanner(System.in);
+        String output = in.readLine();
+        while (!output.equals("") && !output.equals("End")) {
+            JSONArray notifications = (JSONArray) new JSONParser().parse(output);
+            if (notifications.size() != 0) {
+                System.out.println(notifications.toJSONString());
+            }
+            output = in.readLine();
+        }
+        int option;
+        do {
+            option = scanner.nextInt();
+        } while (option != 0);
+
     }
 
     private static void sendNotification() throws IOException {
@@ -192,4 +208,5 @@ public class Passenger {
                         --------------------------------------->""");
         }
     }
+
 }

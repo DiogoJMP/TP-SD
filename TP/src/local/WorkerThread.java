@@ -9,6 +9,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -162,7 +163,7 @@ public class WorkerThread extends Thread {
             InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + group);
             multicastSocket.setTimeToLive(0);
             multicastSocket.joinGroup(address);
-            new LocalManagerMulticastThread(multicastSocket, address, CentralManager.getMulticastPort());
+            new LocalManagerMulticastThread(multicastSocket, address, CentralManager.getMulticastPort()).start();
         }
     }
 
@@ -230,17 +231,36 @@ public class WorkerThread extends Thread {
         notification.put("comment", comment);
 
         byte[] notificationBytes = notification.toJSONString().getBytes();
-        for (int i = userGroups[0]; i < userGroups.length; i++) {
-            InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroups[0]);
-            DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
-            multicastSocket.send(packet);
+        for (int userGroup : userGroups) {
+            if (lines.contains(userGroup)) {
+                InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroup);
+                DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
+                multicastSocket.send(packet);
+            }
         }
         notifications.add(notification);
         JSONHandler.writeToJSONFile(notifications.toJSONString(), "notifications");
     }
 
-    private void getNotifications() {
-
+    private void getNotifications() throws IOException, InterruptedException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] notificationBytes = "GetNotifications".getBytes();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        for (int userGroup : userGroups) {
+            InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroup);
+            DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
+            System.setOut(ps);
+            multicastSocket.send(packet);
+            Thread.sleep(250);
+            System.out.flush();
+            System.setOut(old);
+            String[] output = baos.toString().split("\r\n");
+            if (!output[output.length - 1].equals("[]")) {
+                out.println(output[output.length - 1]);
+            }
+        }
+        out.println("End");
     }
 
     public void run() {
@@ -276,6 +296,8 @@ public class WorkerThread extends Thread {
 
         } catch (IOException | ParseException e) {
             System.out.println(e.getMessage());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

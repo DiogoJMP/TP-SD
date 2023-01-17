@@ -18,9 +18,6 @@ public class LocalManager extends Thread {
         this.tcpPort = CentralManager.getTcpPort() + id;
     }
 
-    //local manager receives notification via tcp
-    //transmits it to everyone connected to its group via multicast
-
     @Override
     public void run() {
         new LocalManagerTCPThread(tcpPort).start();
