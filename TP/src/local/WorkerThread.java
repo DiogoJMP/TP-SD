@@ -1,7 +1,7 @@
 package local;
 
 import central.CentralManager;
-import jsonhandler.JSONHandler;
+import utils.JSONHandler;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -9,10 +9,10 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
 public class WorkerThread extends Thread {
     private Socket socket;
@@ -50,9 +50,9 @@ public class WorkerThread extends Thread {
 
     }
 
-    private void chooseLines(JSONArray lines, int input) {
+    private void chooseLines(JSONArray lines, JSONObject input) {
         if (lines.contains(input)) {
-            lines.remove((Integer) input);
+            lines.remove(input);
         } else {
             lines.add(input);
         }
@@ -90,7 +90,7 @@ public class WorkerThread extends Thread {
         for (int i = 0; i < linesArray.length; i++) {
             tempJSON = (JSONObject) linesJSON.get(i);
             tempId = (long) tempJSON.get("id") + 1;
-            if (lines.contains((int) tempId - 1)) {
+            if (lines.contains(tempJSON)) {
                 linesArray[i] = (tempId + "- " + tempJSON.get("name") + " (Selected) ");
             } else {
                 linesArray[i] = (tempId + "- " + tempJSON.get("name") + " ");
@@ -123,7 +123,7 @@ public class WorkerThread extends Thread {
             printLines(linesJSON, lines, "Signup");
             input = Integer.parseInt(in.readLine());
             if (input > 0 && input <= 24) {
-                chooseLines(lines, input - 1);
+                chooseLines(lines, (JSONObject) linesJSON.get(input - 1));
             }
             if (input == 0 && lines.size() != 0) {
                 out.println("Success");
@@ -152,7 +152,8 @@ public class WorkerThread extends Thread {
         userGroups = new int[linesJ.size()];
 
         for (int i = 0; i < userGroups.length; i++) {
-            lline = (long) linesJ.get(i);
+            JSONObject tempJson = (JSONObject) linesJ.get(i);
+            lline = (long) tempJson.get("id");
             userGroups[i] = (int) lline;
         }
     }
@@ -208,7 +209,7 @@ public class WorkerThread extends Thread {
             printLines(linesJSON, lines, "");
             input = Integer.parseInt(in.readLine());
             if (input > 0 && input <= userGroups.length) {
-                chooseLines(lines, input - 1);
+                chooseLines(lines, (JSONObject) linesJSON.get(input - 1));
             }
             if (input == 0 && lines.size() != 0) {
                 out.println("Success");
@@ -231,8 +232,14 @@ public class WorkerThread extends Thread {
         notification.put("comment", comment);
 
         byte[] notificationBytes = notification.toJSONString().getBytes();
+        ArrayList<Integer> tempList = new ArrayList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            JSONObject tempJSON = (JSONObject) lines.get(i);
+            long tempId = (long) tempJSON.get("id");
+            tempList.add((int) tempId);
+        }
         for (int userGroup : userGroups) {
-            if (lines.contains(userGroup)) {
+            if (tempList.contains(userGroup)) {
                 InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroup);
                 DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
                 multicastSocket.send(packet);
@@ -242,7 +249,22 @@ public class WorkerThread extends Thread {
         JSONHandler.writeToJSONFile(notifications.toJSONString(), "notifications");
     }
 
-    private void getNotifications() throws IOException, InterruptedException {
+    private void sendFormattedNotifications(ArrayList<JSONArray> notifications) {
+        JSONArray output = new JSONArray();
+        for (int i = 0; i < notifications.size(); i++) {
+            for (int j = 0; j < notifications.get(i).size(); j++) {
+                JSONObject tempJSON = (JSONObject) notifications.get(i).get(j);
+                if (!output.contains(tempJSON)) {
+                    output.add(tempJSON);
+                }
+            }
+        }
+        out.println(output.toJSONString());
+    }
+
+    private void getNotifications() throws IOException, InterruptedException, ParseException {
+        ArrayList<JSONArray> list = new ArrayList<>();
+        JSONParser parser = new JSONParser();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] notificationBytes = "GetNotifications".getBytes();
         PrintStream ps = new PrintStream(baos);
@@ -257,10 +279,10 @@ public class WorkerThread extends Thread {
             System.setOut(old);
             String[] output = baos.toString().split("\r\n");
             if (!output[output.length - 1].equals("[]")) {
-                out.println(output[output.length - 1]);
+                list.add((JSONArray) parser.parse(output[output.length - 1]));
             }
         }
-        out.println("End");
+        sendFormattedNotifications(list);
     }
 
     public void run() {

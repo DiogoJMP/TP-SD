@@ -5,10 +5,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import utils.ConsoleHandler;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Passenger {
@@ -18,7 +19,12 @@ public class Passenger {
     private static String userName;
 
     public static void main(String[] args) {
-        try (Socket socket = new Socket("localhost", CentralManager.getTcpPort())) {
+        if (args.length != 1 || !(Integer.parseInt(args[0]) >= 1 && Integer.parseInt(args[0]) <= 24)) {
+            System.out.println("Function: Passenger <lineNumber> (1-24)");
+            System.exit(-1);
+        }
+        try (Socket socket = new Socket("localhost",
+                CentralManager.getTcpPort() + Integer.parseInt(args[0]))) {
 
             out = new PrintWriter(socket.getOutputStream(), true);
 
@@ -35,7 +41,7 @@ public class Passenger {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            printMenu("WELCOME");
+            ConsoleHandler.printMenu("WELCOME", "");
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
@@ -57,8 +63,7 @@ public class Passenger {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            printMenu("SIGNEDIN");
-
+            ConsoleHandler.printMenu("SIGNEDIN", userName);
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
@@ -82,7 +87,7 @@ public class Passenger {
         String userName, password;
         String output = "";
         do {
-            clr();
+            ConsoleHandler.clr();
             System.out.println(output);
             System.out.print("Enter a username: ");
             userName = scanner.nextLine();
@@ -95,7 +100,7 @@ public class Passenger {
         } while (!output.equals("Success"));
         int option;
         do {
-            clr();
+            ConsoleHandler.clr();
             while (!(output = in.readLine()).equals("End")) {
                 System.out.println(output);
             }
@@ -116,7 +121,7 @@ public class Passenger {
         String password;
         String output = "";
         do {
-            clr();
+            ConsoleHandler.clr();
             System.out.println(output);
 
             System.out.print("Enter your username: ");
@@ -133,21 +138,38 @@ public class Passenger {
     }
 
     private static void checkNotifications() throws IOException, ParseException {
+        JSONParser parser = new JSONParser();
         out.println("GetNotifications");
         Scanner scanner = new Scanner(System.in);
         String output = in.readLine();
-        while (!output.equals("") && !output.equals("End")) {
-            JSONArray notifications = (JSONArray) new JSONParser().parse(output);
-            if (notifications.size() != 0) {
-                System.out.println(notifications.toJSONString());
+        JSONArray notifications = (JSONArray) parser.parse(output);
+        ConsoleHandler.clr();
+
+        for (int i = 0; i < notifications.size(); i++) {
+            String linesAffected = "";
+            JSONObject notification = (JSONObject) notifications.get(i);
+            String[] dateTime = notification.get("date").toString().split(" ");
+            JSONArray linesAffectedJ = (JSONArray) notification.get("linesAffected");
+            for (int j = 0; j < linesAffectedJ.size(); j++) {
+                JSONObject lineAffected = (JSONObject) linesAffectedJ.get(j);
+                linesAffected += lineAffected.get("name").toString();
+                if (j != linesAffectedJ.size() - 1) {
+                    linesAffected += ", ";
+                }
             }
-            output = in.readLine();
+            System.out.println("""
+                    -------------<NOTIFICATION>-------------
+                    Date:\040""" + dateTime[0] + """
+                    \nTime:\040""" + dateTime[1] + """
+                    \nComment:\040""" + notification.get("comment").toString() + """
+                    \nLines affected:\040""" + linesAffected + """
+                    \n----------------------------------------""");
         }
         int option;
         do {
+            System.out.print("0- Exit");
             option = scanner.nextInt();
         } while (option != 0);
-
     }
 
     private static void sendNotification() throws IOException {
@@ -157,7 +179,7 @@ public class Passenger {
         String comment;
         int option;
         do {
-            clr();
+            ConsoleHandler.clr();
             while (!(output = in.readLine()).equals("End")) {
                 System.out.println(output);
             }
@@ -171,7 +193,7 @@ public class Passenger {
         } while (!output.equals("Success"));
 
         do {
-            clr();
+            ConsoleHandler.clr();
             System.out.println(output);
             System.out.print("Write a comment: ");
             comment = scanner.nextLine();
@@ -179,34 +201,6 @@ public class Passenger {
             output = in.readLine();
         } while (!output.equals("Success"));
 
-    }
-
-    private static void clr() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-    }
-
-
-    private static void printMenu(String option) {
-        clr();
-        switch (option) {
-            case "WELCOME":
-                System.out.print("""
-                        ----------------<WELCOME>----------------
-                        1- Sign in
-                        2- Sign up
-                        0- Exit
-                        --------------------------------------->""");
-                break;
-            case "SIGNEDIN":
-                System.out.print("""
-                        ----------------<WELCOME,\040""" + userName + """
-                        >------------
-                        1- Check notifications
-                        2- Send notification
-                        0- Sign out
-                        --------------------------------------->""");
-        }
     }
 
 }
