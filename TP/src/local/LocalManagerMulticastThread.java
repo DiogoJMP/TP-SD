@@ -15,34 +15,36 @@ import java.nio.charset.StandardCharsets;
 public class LocalManagerMulticastThread extends Thread {
     private MulticastSocket multicastSocket;
     private InetAddress group;
-    private int port;
+    private int id;
 
-    public LocalManagerMulticastThread(MulticastSocket socket, InetAddress group, int port) {
+    public LocalManagerMulticastThread(int id, MulticastSocket socket, InetAddress group) {
+        this.id = id;
         this.multicastSocket = socket;
         this.group = group;
-        this.port = port;
     }
 
     @Override
     public void run() {
-        JSONArray notifications = new JSONArray();
-        while (!multicastSocket.isClosed()) {
-            byte[] buffer = new byte[CentralManager.getMaxBufferLen()];
-            DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, port);
-            String message;
-            JSONObject notification;
-            try {
+        try {
+            multicastSocket.joinGroup(group);
+            while (!multicastSocket.isClosed()) {
+                byte[] buffer = new byte[CentralManager.getMaxBufferLen()];
+                DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
+                System.out.println(datagram.getPort() + "\n" + datagram.getAddress().toString());
+                String message;
+                JSONObject notification;
                 multicastSocket.receive(datagram);
+                System.out.println("packet received");
+                JSONArray notifications = Server.notifications.get(id);
                 message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
-                if (message.equals("GetNotifications")) {
-                    System.out.println(notifications.toJSONString());
-                } else {
-                    notification = (JSONObject) new JSONParser().parse(message);
-                    notifications.add(notification);
-                }
-            } catch (IOException | ParseException e) {
-                System.out.println("Socket closed!");
+                notification = (JSONObject) new JSONParser().parse(message);
+                notifications.add(notification);
+                Server.notifications.set(id, notifications);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
     }
 }

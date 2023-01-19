@@ -22,6 +22,12 @@ public class ConsoleHandler {
                     2- Send notification
                     0- Sign out
                     --------------------------------------->""");
+            case "CENTRAL" -> System.out.print("""
+                    -----------------<WELCOME>-----------------
+                    1- Check today's reports
+                    2- Send network traffic suspension notice
+                    0- Exit
+                    ----------------------------------------->""");
         }
     }
 

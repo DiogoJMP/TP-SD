@@ -10,11 +10,11 @@ import java.io.IOException;
 
 public class JSONHandler {
     public static JSONArray readJSONArrayFromFile(String fileName) throws IOException, ParseException {
-        return (JSONArray) new JSONParser().parse(new FileReader("../files/" + fileName + ".json"));
+        return (JSONArray) new JSONParser().parse(new FileReader("files/" + fileName + ".json"));
     }
 
     public static void writeToJSONFile(String jsonString, String fileName) throws IOException {
-        FileWriter file = new FileWriter("../files/" + fileName + ".json");
+        FileWriter file = new FileWriter("files/" + fileName + ".json");
         file.write(jsonString);
         file.close();
     }

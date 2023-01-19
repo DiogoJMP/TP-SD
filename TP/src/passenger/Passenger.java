@@ -9,7 +9,6 @@ import utils.ConsoleHandler;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Passenger {
@@ -24,7 +23,7 @@ public class Passenger {
             System.exit(-1);
         }
         try (Socket socket = new Socket("localhost",
-                CentralManager.getTcpPort() + Integer.parseInt(args[0]))) {
+                CentralManager.getTCPPort() + Integer.parseInt(args[0]))) {
 
             out = new PrintWriter(socket.getOutputStream(), true);
 

@@ -19,12 +19,11 @@ public class WorkerThread extends Thread {
     private MulticastSocket multicastSocket;
     private PrintWriter out;
     private BufferedReader in;
-    private InetAddress ip;
     private int[] userGroups;
+    private String userName;
 
     public WorkerThread(Socket socket) {
         this.socket = socket;
-        this.ip = socket.getInetAddress();
     }
 
     private boolean userNameExists(JSONArray users, String userName) {
@@ -58,35 +57,12 @@ public class WorkerThread extends Thread {
         }
     }
 
-    private void printLinesSignUp(String[] lines) {
-        String finalOutput = "";
-        for (int i = 0; i < lines.length / 3; i++) {
-            finalOutput += "|" + lines[i] + "| " + lines[i + 8] + "| " + lines[i + 16];
-            finalOutput += "\n";
-        }
-        out.println(finalOutput);
-        out.println("End");
-    }
-
-    private void printLinesNotification(String[] lines) {
-        String finalOutput = "";
-        for (int i = 0; i < lines.length; i++) {
-            finalOutput += lines[i] + "\n";
-        }
-        out.println(finalOutput);
-        out.println("End");
-    }
-
-    private void printLines(JSONArray linesJSON, JSONArray lines, String type) {
+    private void printLinesSignUp(JSONArray linesJSON, JSONArray lines) {
         JSONObject tempJSON;
         long tempId;
         String[] linesArray;
 
-        if (type.equals("Signup")) {
-            linesArray = new String[linesJSON.size()];
-        } else {
-            linesArray = new String[userGroups.length];
-        }
+        linesArray = new String[linesJSON.size()];
         for (int i = 0; i < linesArray.length; i++) {
             tempJSON = (JSONObject) linesJSON.get(i);
             tempId = (long) tempJSON.get("id") + 1;
@@ -96,11 +72,38 @@ public class WorkerThread extends Thread {
                 linesArray[i] = (tempId + "- " + tempJSON.get("name") + " ");
             }
         }
-        if (type.equals("Signup")) {
-            printLinesSignUp(linesArray);
-        } else {
-            printLinesNotification(linesArray);
+
+        String finalOutput = "";
+        for (int i = 0; i < linesArray.length / 3; i++) {
+            finalOutput += "|" + linesArray[i] + "| " + linesArray[i + 8] + "| " + linesArray[i + 16];
+            finalOutput += "\n";
         }
+        out.println(finalOutput);
+        out.println("End");
+    }
+
+    private void printLinesNotification(JSONArray linesJSON, JSONArray lines) {
+        JSONObject tempJSON;
+        long tempId;
+        String[] linesArray;
+        linesArray = new String[userGroups.length];
+
+        for (int i = 0; i < linesArray.length; i++) {
+            tempJSON = (JSONObject) linesJSON.get(userGroups[i]);
+            tempId = (long) tempJSON.get("id") + 1;
+            if (lines.contains(tempJSON)) {
+                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " (Selected) ");
+            } else {
+                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " ");
+            }
+        }
+
+        String finalOutput = "";
+        for (int i = 0; i < linesArray.length; i++) {
+            finalOutput += linesArray[i] + "\n";
+        }
+        out.println(finalOutput);
+        out.println("End");
     }
 
     private void signUp() throws IOException, ParseException {
@@ -120,7 +123,7 @@ public class WorkerThread extends Thread {
         JSONArray linesJSON = JSONHandler.readJSONArrayFromFile("lines");
         int input;
         while (true) {
-            printLines(linesJSON, lines, "Signup");
+            printLinesSignUp(linesJSON, lines);
             input = Integer.parseInt(in.readLine());
             if (input > 0 && input <= 24) {
                 chooseLines(lines, (JSONObject) linesJSON.get(input - 1));
@@ -160,17 +163,11 @@ public class WorkerThread extends Thread {
 
     private void joinGroups(int[] groups) throws IOException {
         multicastSocket = new MulticastSocket(CentralManager.getMulticastPort());
-        for (int group : groups) {
-            InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + group);
-            multicastSocket.setTimeToLive(0);
-            multicastSocket.joinGroup(address);
-            new LocalManagerMulticastThread(multicastSocket, address, CentralManager.getMulticastPort()).start();
-        }
     }
 
     private void leaveGroups(int[] groups) throws IOException {
         for (int group : groups) {
-            multicastSocket.leaveGroup(InetAddress.getByName(CentralManager.getChosenIp() + group));
+            multicastSocket.leaveGroup(InetAddress.getByName(CentralManager.getMulticastIp() + group));
         }
         multicastSocket.close();
     }
@@ -189,6 +186,7 @@ public class WorkerThread extends Thread {
             } else {
                 out.println("Success");
                 setUserGroups(users, (String) user.get("userName"));
+                userName = (String) user.get("userName");
                 joinGroups(userGroups);
                 break;
             }
@@ -198,7 +196,7 @@ public class WorkerThread extends Thread {
     private void sendNotification() throws IOException, ParseException {
         JSONObject notification = new JSONObject();
         JSONArray lines = new JSONArray();
-        JSONArray notifications = JSONHandler.readJSONArrayFromFile("notifications");
+        JSONArray notificationsJSON = JSONHandler.readJSONArrayFromFile("notifications");
         JSONArray linesJSON = JSONHandler.readJSONArrayFromFile("lines");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         LocalDateTime now = LocalDateTime.now(ZoneId.of("GMT+0"));
@@ -206,7 +204,7 @@ public class WorkerThread extends Thread {
         notification.put("date", dtf.format(now));
         int input;
         while (true) {
-            printLines(linesJSON, lines, "");
+            printLinesNotification(linesJSON, lines);
             input = Integer.parseInt(in.readLine());
             if (input > 0 && input <= userGroups.length) {
                 chooseLines(lines, (JSONObject) linesJSON.get(input - 1));
@@ -230,6 +228,7 @@ public class WorkerThread extends Thread {
             }
         }
         notification.put("comment", comment);
+        notification.put("usersNotified", new JSONArray());
 
         byte[] notificationBytes = notification.toJSONString().getBytes();
         ArrayList<Integer> tempList = new ArrayList<>();
@@ -240,49 +239,31 @@ public class WorkerThread extends Thread {
         }
         for (int userGroup : userGroups) {
             if (tempList.contains(userGroup)) {
-                InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroup);
-                DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
-                multicastSocket.send(packet);
+                InetAddress address = InetAddress.getByName(CentralManager.getMulticastIp() + userGroup);
+                DatagramPacket datagram = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
+                System.out.println(datagram.getPort()+"\n"+datagram.getAddress().toString());
+                multicastSocket.send(datagram);
             }
         }
-        notifications.add(notification);
-        JSONHandler.writeToJSONFile(notifications.toJSONString(), "notifications");
+        notificationsJSON.add(notification);
+        JSONHandler.writeToJSONFile(notificationsJSON.toJSONString(), "notifications");
     }
 
-    private void sendFormattedNotifications(ArrayList<JSONArray> notifications) {
+    private void getNotifications() {
         JSONArray output = new JSONArray();
-        for (int i = 0; i < notifications.size(); i++) {
-            for (int j = 0; j < notifications.get(i).size(); j++) {
-                JSONObject tempJSON = (JSONObject) notifications.get(i).get(j);
+        for (int i = 0; i < userGroups.length; i++) {
+            for (int j = 0; j < Server.notifications.get(userGroups[i]).size(); j++) {
+                JSONObject tempJSON = (JSONObject) Server.notifications.get(userGroups[i]).get(j);
+                JSONArray usersNotified = (JSONArray) tempJSON.get("usersNotified");
+                if (!usersNotified.contains(userName)) {
+                    usersNotified.add(userName);
+                }
                 if (!output.contains(tempJSON)) {
                     output.add(tempJSON);
                 }
             }
         }
         out.println(output.toJSONString());
-    }
-
-    private void getNotifications() throws IOException, InterruptedException, ParseException {
-        ArrayList<JSONArray> list = new ArrayList<>();
-        JSONParser parser = new JSONParser();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] notificationBytes = "GetNotifications".getBytes();
-        PrintStream ps = new PrintStream(baos);
-        PrintStream old = System.out;
-        for (int userGroup : userGroups) {
-            InetAddress address = InetAddress.getByName(CentralManager.getChosenIp() + userGroup);
-            DatagramPacket packet = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
-            System.setOut(ps);
-            multicastSocket.send(packet);
-            Thread.sleep(250);
-            System.out.flush();
-            System.setOut(old);
-            String[] output = baos.toString().split("\r\n");
-            if (!output[output.length - 1].equals("[]")) {
-                list.add((JSONArray) parser.parse(output[output.length - 1]));
-            }
-        }
-        sendFormattedNotifications(list);
     }
 
     public void run() {
@@ -307,6 +288,7 @@ public class WorkerThread extends Thread {
                 }
                 if (inputLine.equals("Signout")) {
                     leaveGroups(userGroups);
+                    userName = "";
                 }
                 if (inputLine.equals("Bye")) {
                     break;
@@ -318,8 +300,6 @@ public class WorkerThread extends Thread {
 
         } catch (IOException | ParseException e) {
             System.out.println(e.getMessage());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 }
