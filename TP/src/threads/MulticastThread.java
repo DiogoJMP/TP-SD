@@ -5,6 +5,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import utils.ConsoleHandler;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -35,6 +36,7 @@ public class MulticastThread extends Thread {
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
                 JSONObject notification;
                 multicastSocket.receive(datagram);
+                System.out.print("\nNew notifications!");
                 newNotifications.set(true);
                 String message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
                 notification = (JSONObject) new JSONParser().parse(message);

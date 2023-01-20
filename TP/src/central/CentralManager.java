@@ -67,7 +67,9 @@ public class CentralManager {
         int option;
         if (reports.size() == 0) {
             do {
+                ConsoleHandler.clr();
                 System.out.print("""
+                        ----------------------------------------
                         No reports
                         ----------------------------------------
                         0- Exit

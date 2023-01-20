@@ -25,6 +25,8 @@ public class Passenger {
     private static MulticastSocket multicastSocket;
     private static AtomicBoolean newNotifications = new AtomicBoolean(false);
 
+    private static final Object lock = new Object();
+
     public static void main(String[] args) {
         if (args.length != 1 || !(Integer.parseInt(args[0]) >= 1 && Integer.parseInt(args[0]) <= 24)) {
             System.out.println("Function: Passenger <lineNumber> (1-24)");
@@ -171,7 +173,9 @@ public class Passenger {
         int option;
         if (notifications.size() == 0) {
             do {
+                ConsoleHandler.clr();
                 System.out.print("""
+                        ----------------------------------------
                         No notifications
                         ----------------------------------------
                         0- Exit
@@ -246,7 +250,6 @@ public class Passenger {
             out.println(comment);
             output = in.readLine();
         } while (!output.equals("Success"));
-
     }
 
 }
