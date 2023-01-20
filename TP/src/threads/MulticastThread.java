@@ -36,7 +36,8 @@ public class MulticastThread extends Thread {
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
                 JSONObject notification;
                 multicastSocket.receive(datagram);
-                System.out.print("\nNew notifications!");
+                System.out.println("\nNew notifications from line " +
+                        Integer.parseInt(group.getHostAddress().split("\\.")[3]) + 1 + "!");
                 newNotifications.set(true);
                 String message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
                 notification = (JSONObject) new JSONParser().parse(message);

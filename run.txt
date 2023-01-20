@@ -1,2 +1,2 @@
 Em caso que me esqueça:
-java -cp '../jar/json-simple-1.1.1.jar;.' Passenger  239.0.0.0 1234
+java -cp '../jar/json-simple-1.1.1.jar;.' Passenger <lineNumber> (1-24)
