@@ -1,4 +1,4 @@
-package local;
+package passenger;
 
 import central.CentralManager;
 import org.json.simple.JSONArray;
@@ -12,19 +12,19 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
 
-public class LocalManagerMulticastThread extends Thread {
-    private MulticastSocket multicastSocket;
+public class PassengerMulticastThread extends Thread {
     private InetAddress group;
-    private int id;
+    private MulticastSocket multicastSocket;
+    private JSONArray notifications;
 
-    public LocalManagerMulticastThread(int id, MulticastSocket socket, InetAddress group) {
-        this.id = id;
-        this.multicastSocket = socket;
+    public PassengerMulticastThread(MulticastSocket multicastSocket, InetAddress group, JSONArray notifications) {
+        this.multicastSocket = multicastSocket;
         this.group = group;
+        this.notifications = notifications;
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         try {
             multicastSocket.joinGroup(group);
             while (!multicastSocket.isClosed()) {
@@ -32,14 +32,11 @@ public class LocalManagerMulticastThread extends Thread {
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
                 JSONObject notification;
                 multicastSocket.receive(datagram);
-                JSONArray notifications = Server.notifications.get(id);
                 String message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
                 notification = (JSONObject) new JSONParser().parse(message);
                 notifications.add(notification);
-                Server.notifications.set(id, notifications);
             }
-        } catch (IOException | ParseException e) {
-            throw new RuntimeException(e);
+        } catch (IOException | ParseException ignored) {
         }
     }
 }

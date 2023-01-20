@@ -14,7 +14,7 @@ public class LocalManager extends Thread {
     public final int id;
     private final InetAddress group;
     private DatagramSocket socket;
-    private int port;
+    private final int port;
 
     public LocalManager(int id, InetAddress group, int port) {
         this.id = id;

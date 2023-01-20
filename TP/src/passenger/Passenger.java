@@ -8,6 +8,8 @@ import org.json.simple.parser.ParseException;
 import utils.ConsoleHandler;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -16,6 +18,8 @@ public class Passenger {
     private static PrintWriter out;
     private static BufferedReader in;
     private static String userName;
+    private static JSONArray notifications = new JSONArray();
+    private static MulticastSocket multicastSocket;
 
     public static void main(String[] args) {
         if (args.length != 1 || !(Integer.parseInt(args[0]) >= 1 && Integer.parseInt(args[0]) <= 24)) {
@@ -74,6 +78,7 @@ public class Passenger {
                 sendNotification();
             } else {
                 out.println("Signout");
+                multicastSocket.close();
                 break;
             }
         }
@@ -113,7 +118,7 @@ public class Passenger {
         } while (!output.equals("Success"));
     }
 
-    private static void signIn() throws IOException {
+    private static void signIn() throws IOException, ParseException {
         out.println("Signin");
         JSONObject user = new JSONObject();
         Scanner scanner = new Scanner(System.in);
@@ -134,19 +139,43 @@ public class Passenger {
 
             output = in.readLine();
         } while (!output.equals("Success"));
+
+        output = in.readLine();
+        JSONArray groupsJ = (JSONArray) new JSONParser().parse(output);
+        int[] groups = new int[groupsJ.size()];
+        long lgroup;
+        multicastSocket = new MulticastSocket(CentralManager.getMulticastPort());
+
+        for (int i = 0; i < groups.length; i++) {
+            JSONObject tempJson = (JSONObject) groupsJ.get(i);
+            lgroup = (long) tempJson.get("id");
+            groups[i] = (int) lgroup;
+            new PassengerMulticastThread(multicastSocket,
+                    InetAddress.getByName(CentralManager.getMulticastIp() + groups[i]), notifications).start();
+        }
     }
 
-    private static void checkNotifications() throws IOException, ParseException {
+    private static JSONArray formatNotifications(JSONArray notifications) {
+        JSONArray formattedNotifications = new JSONArray();
+        for (int i = 0; i < notifications.size(); i++) {
+            JSONObject tempJSON = (JSONObject) notifications.get(i);
+            if (!formattedNotifications.contains(tempJSON)) {
+                formattedNotifications.add(tempJSON);
+            }
+        }
+        return formattedNotifications;
+    }
+
+    private static void checkNotifications() {
         JSONParser parser = new JSONParser();
         out.println("GetNotifications");
         Scanner scanner = new Scanner(System.in);
-        String output = in.readLine();
-        JSONArray notifications = (JSONArray) parser.parse(output);
+        JSONArray formattedNotifications = formatNotifications(notifications);
         ConsoleHandler.clr();
 
-        for (int i = 0; i < notifications.size(); i++) {
+        for (int i = 0; i < formattedNotifications.size(); i++) {
             String linesAffected = "";
-            JSONObject notification = (JSONObject) notifications.get(i);
+            JSONObject notification = (JSONObject) formattedNotifications.get(i);
             String[] dateTime = notification.get("date").toString().split(" ");
             JSONArray linesAffectedJ = (JSONArray) notification.get("linesAffected");
             for (int j = 0; j < linesAffectedJ.size(); j++) {

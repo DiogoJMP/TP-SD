@@ -148,6 +148,7 @@ public class WorkerThread extends Thread {
             userJson = (JSONObject) o;
             if (userName.equals(userJson.get("userName"))) {
                 linesJ = (JSONArray) userJson.get("lines");
+                out.println(linesJ);
                 break;
             }
         }
@@ -159,17 +160,6 @@ public class WorkerThread extends Thread {
             lline = (long) tempJson.get("id");
             userGroups[i] = (int) lline;
         }
-    }
-
-    private void joinGroups(int[] groups) throws IOException {
-        multicastSocket = new MulticastSocket(CentralManager.getMulticastPort());
-    }
-
-    private void leaveGroups(int[] groups) throws IOException {
-        for (int group : groups) {
-            multicastSocket.leaveGroup(InetAddress.getByName(CentralManager.getMulticastIp() + group));
-        }
-        multicastSocket.close();
     }
 
     private void signIn() throws IOException, ParseException {
@@ -187,7 +177,7 @@ public class WorkerThread extends Thread {
                 out.println("Success");
                 setUserGroups(users, (String) user.get("userName"));
                 userName = (String) user.get("userName");
-                joinGroups(userGroups);
+                multicastSocket = new MulticastSocket(CentralManager.getMulticastPort());
                 break;
             }
         }
@@ -241,7 +231,6 @@ public class WorkerThread extends Thread {
             if (tempList.contains(userGroup)) {
                 InetAddress address = InetAddress.getByName(CentralManager.getMulticastIp() + userGroup);
                 DatagramPacket datagram = new DatagramPacket(notificationBytes, notificationBytes.length, address, CentralManager.getMulticastPort());
-                System.out.println(datagram.getPort()+"\n"+datagram.getAddress().toString());
                 multicastSocket.send(datagram);
             }
         }
@@ -250,7 +239,6 @@ public class WorkerThread extends Thread {
     }
 
     private void getNotifications() {
-        JSONArray output = new JSONArray();
         for (int i = 0; i < userGroups.length; i++) {
             for (int j = 0; j < Server.notifications.get(userGroups[i]).size(); j++) {
                 JSONObject tempJSON = (JSONObject) Server.notifications.get(userGroups[i]).get(j);
@@ -258,12 +246,8 @@ public class WorkerThread extends Thread {
                 if (!usersNotified.contains(userName)) {
                     usersNotified.add(userName);
                 }
-                if (!output.contains(tempJSON)) {
-                    output.add(tempJSON);
-                }
             }
         }
-        out.println(output.toJSONString());
     }
 
     public void run() {
@@ -287,7 +271,7 @@ public class WorkerThread extends Thread {
                     getNotifications();
                 }
                 if (inputLine.equals("Signout")) {
-                    leaveGroups(userGroups);
+                    multicastSocket.close();
                     userName = "";
                 }
                 if (inputLine.equals("Bye")) {
