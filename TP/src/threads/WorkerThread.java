@@ -85,7 +85,6 @@ public class WorkerThread extends Thread {
 
     private void printLinesNotification(JSONArray linesJSON, JSONArray lines) {
         JSONObject tempJSON;
-        long tempId;
         String[] linesArray;
         linesArray = new String[userGroups.length];
 
@@ -186,7 +185,6 @@ public class WorkerThread extends Thread {
     private void sendNotification() throws IOException, ParseException {
         JSONObject notification = new JSONObject();
         JSONArray lines = new JSONArray();
-        JSONArray notificationsJSON = JSONHandler.readJSONArrayFromFile("notifications");
         JSONArray linesJSON = JSONHandler.readJSONArrayFromFile("lines");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         LocalDateTime now = LocalDateTime.now(ZoneId.of("GMT+0"));
@@ -234,18 +232,18 @@ public class WorkerThread extends Thread {
                 multicastSocket.send(datagram);
             }
         }
-        notificationsJSON.add(notification);
-        JSONHandler.writeToJSONFile(notificationsJSON.toJSONString(), "notifications");
     }
 
     private void getNotifications() {
         for (int i = 0; i < userGroups.length; i++) {
+            JSONArray tempArray = Server.getNotifications().get(userGroups[i]);
             for (int j = 0; j < Server.getNotifications().get(userGroups[i]).size(); j++) {
                 JSONObject tempJSON = (JSONObject) Server.getNotifications().get(userGroups[i]).get(j);
                 JSONArray usersNotified = (JSONArray) tempJSON.get("usersNotified");
                 if (!usersNotified.contains(userName)) {
                     usersNotified.add(userName);
                 }
+                Server.getNotifications().set(userGroups[i], tempArray);
             }
         }
     }

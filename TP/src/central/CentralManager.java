@@ -12,7 +12,6 @@ import java.net.MulticastSocket;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class CentralManager {
@@ -21,16 +20,14 @@ public class CentralManager {
     protected static int tcpPort = 3000;
     protected static String multicastIp = "239.0.0.";
     protected static int maxBufferLen = 2000;
-    private static JSONArray notifications = new JSONArray();
+    private static JSONArray reports = new JSONArray();
     private static MulticastSocket multicastSocket;
 
     public static void main(String[] args) {
         try {
             multicastSocket = new MulticastSocket(multicastPort);
-            for (int i = 0; i < 24; i++) {
-                new MulticastThread(multicastSocket,
-                        InetAddress.getByName(multicastIp + i), notifications).start();
-            }
+            new MulticastThread(multicastSocket,
+                    InetAddress.getByName(multicastIp + 24), reports).start();
             welcomeScreen();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -60,7 +57,24 @@ public class CentralManager {
     }
 
     private static void checkReports() {
-
+        Scanner scanner = new Scanner(System.in);
+        ConsoleHandler.clr();
+        for (int i = 0; i < reports.size(); i++) {
+            JSONObject report = (JSONObject) reports.get(i);
+            System.out.println("""
+                    -------------<REPORT>-------------
+                    Line:\040""" + report.get("line").toString() + """
+                    \nTotal notifications:\040""" + report.get("totalNotifications") + """
+                    \nUsers notified:\040""" + report.get("totalUsersNotified") + """
+                    \n----------------------------------""");
+        }
+        int option;
+        do {
+            System.out.print("""
+                    0- Exit
+                    --------------------------------->""");
+            option = scanner.nextInt();
+        } while (option != 0);
     }
 
     private static void sendSuspensionNotice() throws IOException {

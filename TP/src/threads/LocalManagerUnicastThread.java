@@ -3,11 +3,11 @@ package threads;
 import java.io.IOException;
 import java.net.ServerSocket;
 
-public class LocalManagerTCPThread extends Thread {
+public class LocalManagerUnicastThread extends Thread {
 
     private final int port;
 
-    public LocalManagerTCPThread(int port) {
+    public LocalManagerUnicastThread(int port) {
         this.port = port;
     }
 

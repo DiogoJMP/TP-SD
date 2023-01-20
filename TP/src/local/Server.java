@@ -5,6 +5,7 @@ import org.json.simple.JSONArray;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class Server {
@@ -14,7 +15,8 @@ public class Server {
         try {
             for (int i = 0; i < 24; i++) {
                 notifications.set(i, new JSONArray());
-                new LocalManager(i, InetAddress.getByName(CentralManager.getMulticastIp() + i), CentralManager.getTCPPort() + i).start();
+                new LocalManager(i, InetAddress.getByName(CentralManager.getMulticastIp() + i), CentralManager.getTCPPort() + i,
+                        new MulticastSocket(CentralManager.getMulticastPort())).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
