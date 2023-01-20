@@ -11,16 +11,19 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MulticastThread extends Thread {
     private InetAddress group;
     private MulticastSocket multicastSocket;
     private JSONArray notifications;
+    private AtomicBoolean newNotifications;
 
-    public MulticastThread(MulticastSocket multicastSocket, InetAddress group, JSONArray notifications) {
+    public MulticastThread(MulticastSocket multicastSocket, InetAddress group, JSONArray notifications, AtomicBoolean newNotifications) {
         this.multicastSocket = multicastSocket;
         this.group = group;
         this.notifications = notifications;
+        this.newNotifications = newNotifications;
     }
 
     @Override
@@ -32,6 +35,7 @@ public class MulticastThread extends Thread {
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
                 JSONObject notification;
                 multicastSocket.receive(datagram);
+                newNotifications.set(true);
                 String message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
                 notification = (JSONObject) new JSONParser().parse(message);
                 notifications.add(notification);

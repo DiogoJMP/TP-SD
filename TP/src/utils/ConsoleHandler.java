@@ -25,14 +25,28 @@ public class ConsoleHandler {
                     2- Send notification
                     0- Sign out
                     --------------------------------------->""");
+            case "SIGNEDIN_NEW" -> System.out.print("""
+                    ----------------<WELCOME,\040""" + userName + """
+                    >------------
+                    1- Check notifications (New notifications)
+                    2- Send notification
+                    0- Sign out
+                    --------------------------------------->""");
             case "CENTRAL" -> System.out.print("""
                     -----------------<WELCOME>-----------------
                     1- Check today's reports
                     2- Send network traffic suspension notice
                     0- Exit
                     ----------------------------------------->""");
+            case "CENTRAL_NEW" -> System.out.print("""
+                    -----------------<WELCOME>-----------------
+                    1- Check today's reports (New reports)
+                    2- Send network traffic suspension notice
+                    0- Exit
+                    ----------------------------------------->""");
         }
     }
+
     public static JSONArray formatNotifications(JSONArray notifications) {
         JSONArray formattedNotifications = new JSONArray();
         for (int i = 0; i < notifications.size(); i++) {

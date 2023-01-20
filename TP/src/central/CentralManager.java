@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CentralManager {
 
@@ -22,12 +23,13 @@ public class CentralManager {
     protected static int maxBufferLen = 2000;
     private static JSONArray reports = new JSONArray();
     private static MulticastSocket multicastSocket;
+    private static AtomicBoolean newReports = new AtomicBoolean(false);
 
     public static void main(String[] args) {
         try {
             multicastSocket = new MulticastSocket(multicastPort);
             new MulticastThread(multicastSocket,
-                    InetAddress.getByName(multicastIp + 24), reports).start();
+                    InetAddress.getByName(multicastIp + 24), reports, newReports).start();
             welcomeScreen();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -39,7 +41,11 @@ public class CentralManager {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            ConsoleHandler.printMenu("CENTRAL", "");
+            if (newReports.get()) {
+                ConsoleHandler.printMenu("CENTRAL_NEW", "");
+            } else {
+                ConsoleHandler.printMenu("CENTRAL", "");
+            }
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
@@ -58,6 +64,19 @@ public class CentralManager {
 
     private static void checkReports() {
         Scanner scanner = new Scanner(System.in);
+        int option;
+        if (reports.size() == 0) {
+            do {
+                System.out.print("""
+                        No reports
+                        ----------------------------------------
+                        0- Exit
+                        --------------------------------------->""");
+                option = scanner.nextInt();
+            } while (option != 0);
+            return;
+        }
+        newReports.set(false);
         ConsoleHandler.clr();
         for (int i = 0; i < reports.size(); i++) {
             JSONObject report = (JSONObject) reports.get(i);
@@ -68,7 +87,6 @@ public class CentralManager {
                     \nUsers notified:\040""" + report.get("totalUsersNotified") + """
                     \n----------------------------------""");
         }
-        int option;
         do {
             System.out.print("""
                     0- Exit

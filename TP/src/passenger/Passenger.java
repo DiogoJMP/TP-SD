@@ -1,6 +1,7 @@
 package passenger;
 
 import central.CentralManager;
+import com.sun.security.jgss.GSSUtil;
 import threads.MulticastThread;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -13,6 +14,7 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Passenger {
 
@@ -21,6 +23,7 @@ public class Passenger {
     private static String userName;
     private static JSONArray notifications = new JSONArray();
     private static MulticastSocket multicastSocket;
+    private static AtomicBoolean newNotifications = new AtomicBoolean(false);
 
     public static void main(String[] args) {
         if (args.length != 1 || !(Integer.parseInt(args[0]) >= 1 && Integer.parseInt(args[0]) <= 24)) {
@@ -38,10 +41,12 @@ public class Passenger {
 
         } catch (IOException | ParseException e) {
             System.out.println(e.getMessage());
+        } catch (InterruptedException e) {
+            System.out.println(e.getMessage());
         }
     }
 
-    private static void welcomeScreen() throws IOException, ParseException {
+    private static void welcomeScreen() throws IOException, ParseException, InterruptedException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
@@ -63,11 +68,16 @@ public class Passenger {
         }
     }
 
-    private static void signedInScreen() throws IOException, ParseException {
+    private static void signedInScreen() throws IOException, InterruptedException {
         int option;
         Scanner sc = new Scanner(System.in);
         while (true) {
-            ConsoleHandler.printMenu("SIGNEDIN", userName);
+            Thread.sleep(100);
+            if (newNotifications.get()) {
+                ConsoleHandler.printMenu("SIGNEDIN_NEW", userName);
+            } else {
+                ConsoleHandler.printMenu("SIGNEDIN", userName);
+            }
             option = sc.nextInt();
             while (option < 0 || option > 2) {
                 System.out.println("Invalid option");
@@ -152,13 +162,26 @@ public class Passenger {
             lgroup = (long) tempJson.get("id");
             groups[i] = (int) lgroup;
             new MulticastThread(multicastSocket,
-                    InetAddress.getByName(CentralManager.getMulticastIp() + groups[i]), notifications).start();
+                    InetAddress.getByName(CentralManager.getMulticastIp() + groups[i]), notifications, newNotifications).start();
         }
     }
 
     private static void checkNotifications() {
-        out.println("GetNotifications");
         Scanner scanner = new Scanner(System.in);
+        int option;
+        if (notifications.size() == 0) {
+            do {
+                System.out.print("""
+                        No notifications
+                        ----------------------------------------
+                        0- Exit
+                        --------------------------------------->""");
+                option = scanner.nextInt();
+            } while (option != 0);
+            return;
+        }
+        newNotifications.set(false);
+        out.println("GetNotifications");
         JSONArray formattedNotifications = ConsoleHandler.formatNotifications(notifications);
         ConsoleHandler.clr();
 
@@ -187,7 +210,6 @@ public class Passenger {
                     \nLines affected:\040""" + linesAffected + """
                     \n----------------------------------------""");
         }
-        int option;
         do {
             System.out.print("""
                     0- Exit
