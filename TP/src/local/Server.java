@@ -21,4 +21,8 @@ public class Server {
         }
     }
 
+    public static AtomicReferenceArray<JSONArray> getNotifications() {
+        return notifications;
+    }
+
 }

@@ -1,6 +1,4 @@
-package local;
-
-import org.json.simple.JSONArray;
+package threads;
 
 import java.io.IOException;
 import java.net.ServerSocket;

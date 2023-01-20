@@ -1,5 +1,8 @@
 package utils;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 public class ConsoleHandler {
     public static void clr() {
         System.out.print("\033[H\033[2J");
@@ -29,6 +32,16 @@ public class ConsoleHandler {
                     0- Exit
                     ----------------------------------------->""");
         }
+    }
+    public static JSONArray formatNotifications(JSONArray notifications) {
+        JSONArray formattedNotifications = new JSONArray();
+        for (int i = 0; i < notifications.size(); i++) {
+            JSONObject tempJSON = (JSONObject) notifications.get(i);
+            if (!formattedNotifications.contains(tempJSON)) {
+                formattedNotifications.add(tempJSON);
+            }
+        }
+        return formattedNotifications;
     }
 
 }

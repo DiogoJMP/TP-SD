@@ -1,4 +1,4 @@
-package passenger;
+package threads;
 
 import central.CentralManager;
 import org.json.simple.JSONArray;
@@ -12,12 +12,12 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
 
-public class PassengerMulticastThread extends Thread {
+public class MulticastThread extends Thread {
     private InetAddress group;
     private MulticastSocket multicastSocket;
     private JSONArray notifications;
 
-    public PassengerMulticastThread(MulticastSocket multicastSocket, InetAddress group, JSONArray notifications) {
+    public MulticastThread(MulticastSocket multicastSocket, InetAddress group, JSONArray notifications) {
         this.multicastSocket = multicastSocket;
         this.group = group;
         this.notifications = notifications;

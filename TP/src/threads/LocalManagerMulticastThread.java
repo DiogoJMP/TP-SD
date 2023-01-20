@@ -1,6 +1,7 @@
-package local;
+package threads;
 
 import central.CentralManager;
+import local.Server;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -32,11 +33,11 @@ public class LocalManagerMulticastThread extends Thread {
                 DatagramPacket datagram = new DatagramPacket(buffer, buffer.length, group, CentralManager.getMulticastPort());
                 JSONObject notification;
                 multicastSocket.receive(datagram);
-                JSONArray notifications = Server.notifications.get(id);
+                JSONArray notifications = Server.getNotifications().get(id);
                 String message = new String(buffer, 0, datagram.getLength(), StandardCharsets.UTF_8);
                 notification = (JSONObject) new JSONParser().parse(message);
                 notifications.add(notification);
-                Server.notifications.set(id, notifications);
+                Server.getNotifications().set(id, notifications);
             }
         } catch (IOException | ParseException e) {
             throw new RuntimeException(e);

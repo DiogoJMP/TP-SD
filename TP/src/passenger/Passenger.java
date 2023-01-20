@@ -1,6 +1,7 @@
 package passenger;
 
 import central.CentralManager;
+import threads.MulticastThread;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -150,40 +151,33 @@ public class Passenger {
             JSONObject tempJson = (JSONObject) groupsJ.get(i);
             lgroup = (long) tempJson.get("id");
             groups[i] = (int) lgroup;
-            new PassengerMulticastThread(multicastSocket,
+            new MulticastThread(multicastSocket,
                     InetAddress.getByName(CentralManager.getMulticastIp() + groups[i]), notifications).start();
         }
     }
 
-    private static JSONArray formatNotifications(JSONArray notifications) {
-        JSONArray formattedNotifications = new JSONArray();
-        for (int i = 0; i < notifications.size(); i++) {
-            JSONObject tempJSON = (JSONObject) notifications.get(i);
-            if (!formattedNotifications.contains(tempJSON)) {
-                formattedNotifications.add(tempJSON);
-            }
-        }
-        return formattedNotifications;
-    }
-
     private static void checkNotifications() {
-        JSONParser parser = new JSONParser();
         out.println("GetNotifications");
         Scanner scanner = new Scanner(System.in);
-        JSONArray formattedNotifications = formatNotifications(notifications);
+        JSONArray formattedNotifications = ConsoleHandler.formatNotifications(notifications);
         ConsoleHandler.clr();
 
         for (int i = 0; i < formattedNotifications.size(); i++) {
             String linesAffected = "";
             JSONObject notification = (JSONObject) formattedNotifications.get(i);
             String[] dateTime = notification.get("date").toString().split(" ");
-            JSONArray linesAffectedJ = (JSONArray) notification.get("linesAffected");
-            for (int j = 0; j < linesAffectedJ.size(); j++) {
-                JSONObject lineAffected = (JSONObject) linesAffectedJ.get(j);
-                linesAffected += lineAffected.get("name").toString();
-                if (j != linesAffectedJ.size() - 1) {
-                    linesAffected += ", ";
+            if (notification.get("linesAffected") instanceof JSONArray) {
+                JSONArray linesAffectedJ = (JSONArray) notification.get("linesAffected");
+                for (int j = 0; j < linesAffectedJ.size(); j++) {
+                    JSONObject lineAffected = (JSONObject) linesAffectedJ.get(j);
+                    linesAffected += lineAffected.get("name").toString();
+                    if (j != linesAffectedJ.size() - 1) {
+                        linesAffected += ", ";
+                    }
                 }
+
+            } else {
+                linesAffected = notification.get("linesAffected").toString();
             }
             System.out.println("""
                     -------------<NOTIFICATION>-------------
@@ -195,7 +189,9 @@ public class Passenger {
         }
         int option;
         do {
-            System.out.print("0- Exit");
+            System.out.print("""
+                    0- Exit
+                    --------------------------------------->""");
             option = scanner.nextInt();
         } while (option != 0);
     }

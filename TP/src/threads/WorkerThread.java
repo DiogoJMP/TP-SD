@@ -1,6 +1,7 @@
-package local;
+package threads;
 
 import central.CentralManager;
+import local.Server;
 import utils.JSONHandler;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -90,11 +91,10 @@ public class WorkerThread extends Thread {
 
         for (int i = 0; i < linesArray.length; i++) {
             tempJSON = (JSONObject) linesJSON.get(userGroups[i]);
-            tempId = (long) tempJSON.get("id") + 1;
             if (lines.contains(tempJSON)) {
-                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " (Selected) ");
+                linesArray[i] = (i + 1 + "- " + tempJSON.get("name") + " (Selected) ");
             } else {
-                linesArray[i] = (tempId + "- " + tempJSON.get("name") + " ");
+                linesArray[i] = (i + 1 + "- " + tempJSON.get("name") + " ");
             }
         }
 
@@ -197,7 +197,7 @@ public class WorkerThread extends Thread {
             printLinesNotification(linesJSON, lines);
             input = Integer.parseInt(in.readLine());
             if (input > 0 && input <= userGroups.length) {
-                chooseLines(lines, (JSONObject) linesJSON.get(input - 1));
+                chooseLines(lines, (JSONObject) linesJSON.get(userGroups[input - 1]));
             }
             if (input == 0 && lines.size() != 0) {
                 out.println("Success");
@@ -240,8 +240,8 @@ public class WorkerThread extends Thread {
 
     private void getNotifications() {
         for (int i = 0; i < userGroups.length; i++) {
-            for (int j = 0; j < Server.notifications.get(userGroups[i]).size(); j++) {
-                JSONObject tempJSON = (JSONObject) Server.notifications.get(userGroups[i]).get(j);
+            for (int j = 0; j < Server.getNotifications().get(userGroups[i]).size(); j++) {
+                JSONObject tempJSON = (JSONObject) Server.getNotifications().get(userGroups[i]).get(j);
                 JSONArray usersNotified = (JSONArray) tempJSON.get("usersNotified");
                 if (!usersNotified.contains(userName)) {
                     usersNotified.add(userName);
